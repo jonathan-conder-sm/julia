@@ -1365,6 +1365,10 @@ function link_jilib(path, out, args=``)
     end
 end
 
+function build_id(m::Module)
+    ccall(:jl_module_build_id, UInt64, (Any,), m)
+end
+
 @testset "empty module" begin
     srcdir   = mktempdir()
     cachedir = mktempdir()
@@ -1407,6 +1411,8 @@ end
     m = only(methods(f))
     mi = m.specializations[1]
     ci = mi.cache
+    @test build_id(CN1) != 0
+    @test ci.build_id == build_id(CN1)
     @test ci.specptr != C_NULL
     @test f() == 22
     # Can we reference this first module from a second?
