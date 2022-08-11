@@ -420,6 +420,7 @@ JL_DLLEXPORT jl_code_instance_t *jl_new_codeinst(
     codeinst->purity_bits = effects;
     codeinst->argescapes = argescapes;
     codeinst->relocatability = relocatability;
+    codeinst->build_id = 0; // TODO: Obtain "current"
     return codeinst;
 }
 
