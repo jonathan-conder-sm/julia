@@ -3909,7 +3909,7 @@ static jl_cgval_t emit_invoke(jl_codectx_t &ctx, const jl_cgval_t &lival, const 
 
                        if (build_id != current_build_id) {
                            // Target is present in another pkgimage
-                           jl_printf(JL_STDERR, "\n Want to resolve method from %ld in current build id %ld\n", build_id, jl_current_build_id());
+                           jl_printf(JL_STDERR, "\n (emit_invoke:) Want to resolve method from %ld in current build id %ld\n", build_id, jl_current_build_id());
                            cache_valid = true;
                        }
                     }
@@ -5308,7 +5308,7 @@ static Function *emit_tojlinvoke(jl_code_instance_t *codeinst, Module *M, jl_cod
 
         if (build_id != current_build_id) {
             // Target is present in another pkgimage
-            jl_printf(JL_STDERR, "\n Want to resolve method from %ld in current build id %ld\n", build_id, jl_current_build_id());
+            jl_printf(JL_STDERR, "\n (emit_jlinvoke) Want to resolve method from %ld in current build id %ld\n", build_id, jl_current_build_id());
             cache_valid = true;
         }
     }
@@ -8146,7 +8146,7 @@ void jl_compile_workqueue(
 
             if (build_id != current_build_id) {
                 // Target is present in another pkgimage
-                jl_printf(JL_STDERR, "\n Want to resolve method from %ld in current build id %ld\n", build_id, jl_current_build_id());
+                jl_printf(JL_STDERR, "\n (WQ) Want to resolve method from %ld in current build id %ld\n", build_id, jl_current_build_id());
                 cache_valid = true;
             }
         }
