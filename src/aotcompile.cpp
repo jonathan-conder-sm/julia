@@ -82,7 +82,7 @@ typedef struct {
     std::vector<GlobalValue*> jl_sysimg_gvars;
     std::map<jl_code_instance_t*, std::tuple<uint32_t, uint32_t>> jl_fvar_map;
     // Both maps below index into `jl_sysimg_gvars`.
-    std::map<jl_code_instance_t*, int32_t> jl_external_to_llvm; // uses 1-based indexing
+    std::map<std::tuple<jl_code_instance_t*, bool>, int32_t> jl_external_to_llvm; // uses 1-based indexing
     std::map<void*, int32_t> jl_value_to_llvm; // uses 1-based indexing
 } jl_native_code_desc_t;
 
@@ -343,9 +343,22 @@ void *jl_create_native_impl(jl_array_t *methods, LLVMOrcThreadSafeModuleRef llvm
         data->jl_value_to_llvm[global.first] = gvars.size();
     }
 
-    for (auto &global : params.external_fns) {
-        gvars.push_back(std::string(global.second->getName()));
-        data->jl_external_to_llvm[global.first] = gvars.size();
+    for (auto &extern_fn : params.external_fns) {
+        jl_code_instance_t *this_code = std::get<0>(extern_fn.first);
+        bool specsig = std::get<1>(extern_fn.first);
+        Function *F = extern_fn.second;
+        Module *M = F->getParent();
+
+        Type *T_funcp = F->getFunctionType()->getPointerTo();
+        GlobalVariable *GV = new GlobalVariable(*M, T_funcp, false,
+                                                GlobalVariable::ExternalLinkage,
+                                                Constant::getNullValue(T_funcp), F->getName());
+        F->replaceAllUsesWith(GV);
+        GV->takeName(F);
+        F->eraseFromParent();
+
+        gvars.push_back(std::string(GV->getName()));
+        data->jl_external_to_llvm[extern_fn.first] = gvars.size();
     }
 
     // clones the contents of the module `m` to the shadow_output collector
