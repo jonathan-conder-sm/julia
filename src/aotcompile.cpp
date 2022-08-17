@@ -344,15 +344,15 @@ void *jl_create_native_impl(jl_array_t *methods, LLVMOrcThreadSafeModuleRef llvm
     }
 
     for (auto &extern_fn : params.external_fns) {
-        jl_code_instance_t *this_code = std::get<0>(extern_fn.first);
-        bool specsig = std::get<1>(extern_fn.first);
+        // jl_code_instance_t *this_code = std::get<0>(extern_fn.first);
+        // bool specsig = std::get<1>(extern_fn.first);
         Function *F = extern_fn.second;
         Module *M = F->getParent();
 
-        Type *T_funcp = F->getFunctionType()->getPointerTo();
-        GlobalVariable *GV = new GlobalVariable(*M, T_funcp, false,
+        Type *T_func = F->getFunctionType();
+        GlobalVariable *GV = new GlobalVariable(*M, T_func, false,
                                                 GlobalVariable::ExternalLinkage,
-                                                Constant::getNullValue(T_funcp), F->getName());
+                                                Constant::getNullValue(T_func), F->getName());
         F->replaceAllUsesWith(GV);
         GV->takeName(F);
         F->eraseFromParent();
