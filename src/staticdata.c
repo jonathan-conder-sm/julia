@@ -2204,12 +2204,12 @@ static void jl_save_system_image_to_stream(ios_t *f, jl_array_t *worklist) JL_GC
                 jl_value_t *tag = *tags[i];
                 jl_write_value(&s, tag);
             }
-            jl_write_value(&s, jl_global_roots_table);
             jl_write_value(&s, s.ptls->root_task->tls);
             write_uint32(f, jl_get_gs_ctr());
             write_uint32(f, jl_atomic_load_acquire(&jl_world_counter));
             write_uint32(f, jl_typeinf_world);
         }
+        jl_write_value(&s, jl_global_roots_table);
         write_uint32(f, jl_array_len(s.link_ids_gctags));
         ios_write(f, (char*)jl_array_data(s.link_ids_gctags), jl_array_len(s.link_ids_gctags)*sizeof(uint64_t));
         write_uint32(f, jl_array_len(s.link_ids_relocs));
@@ -2351,7 +2351,6 @@ static jl_value_t *jl_restore_system_image_from_stream(ios_t *f) JL_GC_DISABLED
             jl_value_t **tag = tags[i];
             *tag = jl_read_value(&s);
         }
-        jl_global_roots_table = (jl_array_t*)jl_read_value(&s);
         // set typeof extra-special values now that we have the type set by tags above
         jl_astaggedvalue(jl_current_task)->header = (uintptr_t)jl_task_type | jl_astaggedvalue(jl_current_task)->header;
         jl_astaggedvalue(jl_nothing)->header = (uintptr_t)jl_nothing_type | jl_astaggedvalue(jl_nothing)->header;
@@ -2365,6 +2364,8 @@ static jl_value_t *jl_restore_system_image_from_stream(ios_t *f) JL_GC_DISABLED
         jl_typeinf_world = read_uint32(f);
         jl_set_gs_ctr(gs_ctr);
     }
+
+    jl_global_roots_table = (jl_array_t*)jl_read_value(&s);
     size_t nlinks_gctags = read_uint32(f);
     if (nlinks_gctags > 0) {
         s.link_ids_gctags = jl_alloc_array_1d(jl_array_uint64_type, nlinks_gctags);
