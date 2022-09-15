@@ -887,6 +887,12 @@ function abstract_call_method_with_const_args(interp::AbstractInterpreter,
     if !const_prop_enabled(interp, sv, match)
         return nothing
     end
+    if is_total(result.effects)
+        if isa(result.rt, Const) || call_result_unused(sv)
+            # There is no more information to be gained here. Bail out early.
+            return nothing
+        end
+    end
     res = concrete_eval_call(interp, f, result, arginfo, sv, invokecall)
     if isa(res, ConstCallResults)
         add_backedge!(res.const_result.mi, sv, invokecall === nothing ? nothing : invokecall.lookupsig)
