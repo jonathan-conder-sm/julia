@@ -348,6 +348,7 @@ objectid(@nospecialize(x)) = ccall(:jl_object_id, UInt, (Any,), x)
 datatype_fieldtypes(x::DataType) = ccall(:jl_get_fieldtypes, Core.SimpleVector, (Any,), x)
 
 struct DataTypeLayout
+    size::UInt32
     nfields::UInt32
     npointers::UInt32
     firstptr::Int32
@@ -544,8 +545,7 @@ function isstructtype(@nospecialize t)
     t = unwrap_unionall(t)
     # TODO: what to do for `Union`?
     isa(t, DataType) || return false
-    hasfield = !isdefined(t, :types) || !isempty(t.types)
-    return hasfield || (t.size == 0 && !isabstracttype(t))
+    return !isprimitivetype(t) && !isabstracttype(t)
 end
 
 """
@@ -554,14 +554,7 @@ end
 Determine whether type `T` was declared as a primitive type
 (i.e. using the `primitive type` syntax).
 """
-function isprimitivetype(@nospecialize t)
-    @_total_meta
-    t = unwrap_unionall(t)
-    # TODO: what to do for `Union`?
-    isa(t, DataType) || return false
-    hasfield = !isdefined(t, :types) || !isempty(t.types)
-    return !hasfield && t.size != 0 && !isabstracttype(t)
-end
+isprimitivetype(@nospecialize(t)) = (@_total_meta; isa(t, DataType) && (t.flags & 0x80) == 0x80)
 
 """
     isbitstype(T)

@@ -116,7 +116,7 @@ static int NOINLINE compare_fields(const jl_value_t *a, const jl_value_t *b, jl_
                 }
             }
             if (!ft->layout->haspadding) {
-                if (!bits_equal(ao, bo, ft->size))
+                if (!bits_equal(ao, bo, ft->layout->size))
                     return 0;
             }
             else {
@@ -1795,7 +1795,7 @@ static int equiv_type(jl_value_t *ta, jl_value_t *tb)
           dta->name->abstract == dtb->name->abstract &&
           dta->name->mutabl == dtb->name->mutabl &&
           dta->name->n_uninitialized == dtb->name->n_uninitialized &&
-          (jl_svec_len(jl_field_names(dta)) != 0 || dta->size == dtb->size) &&
+          (jl_svec_len(jl_field_names(dta)) != 0 || (dta->layout && dtb->layout && dta->layout->size == dtb->layout->size)) &&
           (dta->name->atomicfields == NULL
            ? dtb->name->atomicfields == NULL
            : (dtb->name->atomicfields != NULL &&
