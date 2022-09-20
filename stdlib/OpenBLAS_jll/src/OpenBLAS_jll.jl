@@ -37,6 +37,11 @@ function __init__()
         ENV["OPENBLAS_MAIN_FREE"] = "1"
     end
 
+    # Ensure that OpenBLAS does not automatically start up a bunch of threads,
+    # it will only do so if requested by another environment variable, or when
+    # LinearAlgebra initializes in its `__init__()` method:
+    ENV["OPENBLAS_DEFAULT_NUM_THREADS"] = "1"
+
     global libopenblas_handle = dlopen(libopenblas)
     global libopenblas_path = dlpath(libopenblas_handle)
     global artifact_dir = dirname(Sys.BINDIR)
