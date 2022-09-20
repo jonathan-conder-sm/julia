@@ -1091,6 +1091,8 @@ JL_DLLEXPORT void jlbacktrace(void) JL_NOTSAFEPOINT
         jl_print_bt_entry_codeloc(bt_data + i);
     }
 }
+
+// Print backtrace for specified task
 JL_DLLEXPORT void jlbacktracet(jl_task_t *t)
 {
     jl_task_t *ct = jl_current_task;
@@ -1106,6 +1108,42 @@ JL_DLLEXPORT void jlbacktracet(jl_task_t *t)
 JL_DLLEXPORT void jl_print_backtrace(void) JL_NOTSAFEPOINT
 {
     jlbacktrace();
+}
+
+// Print backtraces for all live tasks, for all threads.
+// WARNING: this is dangerous and can crash if used outside of gdb, if
+// all of Julia's threads are not stopped!
+JL_DLLEXPORT void jl_print_task_backtraces(void)
+{
+    for (size_t i = 0; i < jl_n_threads; i++) {
+        jl_ptls_t ptls2 = jl_all_tls_states[i];
+        arraylist_t *live_tasks = &ptls2->heap.live_tasks;
+        size_t n = live_tasks->len;
+        jl_safe_printf("==== Thread %d created %zu live tasks\n",
+                ptls2->tid + 1, n + 1);
+        jl_safe_printf("     ---- Root task (%p)\n", ptls2->root_task);
+        jl_safe_printf("          (sticky: %d, started: %d, state: %d, tid: %d)\n",
+                ptls2->root_task->sticky, ptls2->root_task->started,
+                jl_atomic_load_relaxed(&ptls2->root_task->_state),
+                jl_atomic_load_relaxed(&ptls2->root_task->tid) + 1);
+        jlbacktracet(ptls2->root_task);
+
+        void **lst = live_tasks->items;
+        for (size_t j = 0; j < live_tasks->len; j++) {
+            jl_task_t *t = (jl_task_t *)lst[j];
+            jl_safe_printf("     ---- Task %zu (%p)\n", j + 1, t);
+            jl_safe_printf("          (sticky: %d, started: %d, state: %d, tid: %d)\n",
+                    t->sticky, t->started, jl_atomic_load_relaxed(&t->_state),
+                    jl_atomic_load_relaxed(&t->tid) + 1);
+            if (t->stkbuf != NULL)
+                jlbacktracet(t);
+            else
+                jl_safe_printf("      no stack\n");
+            jl_safe_printf("     ---- End task %zu\n", j + 1);
+        }
+        jl_safe_printf("==== End thread %d\n", ptls2->tid + 1);
+    }
+    jl_safe_printf("==== Done\n");
 }
 
 #ifdef __cplusplus
