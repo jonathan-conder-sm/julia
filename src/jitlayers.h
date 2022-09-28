@@ -41,7 +41,10 @@
 // and feature support (e.g. Windows, JITEventListeners for various profilers,
 // etc.). Thus, we currently only use JITLink where absolutely required, that is,
 // for Mac/aarch64.
-#if defined(_OS_DARWIN_) && defined(_CPU_AARCH64_) || defined(_COMPILER_ASAN_ENABLED_)
+
+// #define JL_FORCE_JITLINK
+
+#if defined(_OS_DARWIN_) && defined(_CPU_AARCH64_) || defined(JL_FORCE_JITLINK) || defined(_COMPILER_ASAN_ENABLED_)
 # if JL_LLVM_VERSION < 130000
 #  pragma message("On aarch64-darwin, LLVM version >= 13 is required for JITLink; fallback suffers from occasional segfaults")
 # endif
@@ -492,6 +495,9 @@ private:
 
 #ifndef JL_USE_JITLINK
     const std::shared_ptr<RTDyldMemoryManager> MemMgr;
+#else
+    std::atomic<size_t> total_size;
+    const std::unique_ptr<jitlink::JITLinkMemoryManager> MemMgr;
 #endif
     ObjLayerT ObjectLayer;
     const std::array<std::unique_ptr<PipelineT>, 4> Pipelines;
