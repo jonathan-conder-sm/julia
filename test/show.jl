@@ -2479,3 +2479,17 @@ end
     ir = Core.Compiler.complete(compact)
     @test lines_shown(compact) == instructions + 1
 end
+
+@testset "IRCode: CFG display" begin
+    # get a cfg
+    function foo(i)
+        j = i+42
+        j == 1 ? 1 : 2
+    end
+    ir = only(Base.code_ircode(foo, (Int,)))[1]
+    cfg = ir.cfg
+
+    str = sprint(io->show(io, cfg))
+    @test contains(str, r"CFG with \d+ blocks")
+    @test contains(str, r"bb 1 \(stmt.+\) ⇨ bb.*")
+end
