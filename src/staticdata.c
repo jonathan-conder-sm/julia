@@ -49,6 +49,13 @@
     one of the corresponding categorical list, then `index = t << RELOC_TAG_OFFSET + i`. The simplest source for the
     details of this encoding can be found in the pair of functions `get_reloc_for_item` and `get_item_for_reloc`.
 
+    `uniquing_list` also holds `(location, targetpos)` pairs for locations of external Types and MethodInstances
+    in the serialized blob (i.e., new-at-the-time-of-serialization specializations). The item at `targetpos` must
+    be checked against the running system to see whether such an object already exists (i.e., whether some other
+    previously-loaded package or workload has created such types/MethodInstances previously). If so,
+    then the pointer at `location` must be updated to the one in the running system.
+    `uniquing_target` is a hash table for which `uniquing_target[targetpos] -> chosen_target`.
+
     Most of step 2 is handled by `jl_write_values`, followed by special handling of the dedicated parallel streams.
 
   - step 3 combines the different sections (fields of `jl_serializer_state`) into one
@@ -351,6 +358,7 @@ typedef struct {
     ios_t *fptr_record;         // serialized array mapping fptrid => spos
     arraylist_t relocs_list;    // a list of (location, target) pairs, see description at top
     arraylist_t gctags_list;    //      "
+    arraylist_t uniquing_list;  //      "
     // record of build_ids for all external linkages, in order of serialization for the current sysimg/pkgimg
     // conceptually, the base pointer for the jth externally-linked item is determined from
     //     i = findfirst(==(link_ids[j]), jl_build_ids)
@@ -2304,6 +2312,8 @@ static jl_value_t *jl_restore_system_image_from_stream(ios_t *f) JL_GC_DISABLED
     arraylist_new(&s.gctags_list, 0);
     s.link_ids_relocs = s.link_ids_gctags = s.link_ids_gvars = NULL;
     jl_value_t **const*const tags = get_tags();
+    htable_t uniquing_target;
+    htable_new(&uniquing_target, 0);
 
     int incremental = jl_linkage_blobs.len > 0;
 
